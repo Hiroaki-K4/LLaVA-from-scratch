@@ -54,7 +54,7 @@ if __name__ == "__main__":
     vision_id = "openai/clip-vit-large-patch14-336"
     batch_size = 4
     num_epochs = 1
-    lr_rate = 1e-3
+    lr_rate = 1e-5
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     train_projector(llm_id, vision_id, batch_size, num_epochs, lr_rate, device)
