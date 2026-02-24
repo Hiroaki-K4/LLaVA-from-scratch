@@ -46,6 +46,9 @@ if __name__ == "__main__":
     # CC3M has 576 tar files from 0000-0575
     base_url = "https://huggingface.co/datasets/pixparse/cc3m-wds/resolve/main/"
 
+    split = "train"
+    # split = "validation"
+
     # Load from 5 shards for testing
-    dataset_urls = [f"{base_url}cc3m-train-{i:04d}.tar" for i in range(5)]
+    dataset_urls = [f"{base_url}cc3m-{split}-{i:04d}.tar" for i in range(5)]
     main(dataset_urls)
