@@ -15,7 +15,7 @@ def train_projector(llm_id, vision_id, batch_size, num_epochs, lr_rate, device):
     optimizer = torch.optim.AdamW(model.projector.parameters(), lr=lr_rate)
 
     train_loader = get_data_loader(
-        batch_size=batch_size, num_workers=4, epoch_steps=2000, split="train"
+        batch_size=batch_size, num_workers=0, epoch_steps=2000, split="train"
     )
 
     model.train()
@@ -38,7 +38,7 @@ def train_projector(llm_id, vision_id, batch_size, num_epochs, lr_rate, device):
 
             images = images.to(device)
 
-            with torch.cuda.amp.autocast(dtype=torch.float16):
+            with torch.amp.autocast("cuda", dtype=torch.float16):
                 outputs = model(input_ids, images, labels=labels)
                 loss = outputs.loss
 
