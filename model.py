@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from transformers import AutoModelForCausalLM, BitsAndBytesConfig, CLIPVisionModel
+from transformers import AutoModelForCausalLM, CLIPVisionModel
 
 
 class LlavaModel(nn.Module):
@@ -11,18 +11,7 @@ class LlavaModel(nn.Module):
         self.vision_encoder.requires_grad_(False)
 
         # Language model
-        # self.language_model = AutoModelForCausalLM.from_pretrained(llm_model_name)
-        quantization_config = BitsAndBytesConfig(
-            load_in_4bit=True,
-            bnb_4bit_compute_dtype=torch.float16,
-            bnb_4bit_use_double_quant=True,
-            bnb_4bit_quant_type="nf4",
-        )
-        self.language_model = AutoModelForCausalLM.from_pretrained(
-            llm_model_name,
-            quantization_config=quantization_config,  # 追加
-            device_map="auto",  # 自動的にGPUへ割り振り
-        )
+        self.language_model = AutoModelForCausalLM.from_pretrained(llm_model_name)
         self.language_model.requires_grad_(False)
 
         # Projection layers
