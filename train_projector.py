@@ -23,12 +23,23 @@ def evaluate(model, val_loader, tokenizer, device):
 
         images = images.to(device)
 
-        with torch.cuda.amp.autocast(dtype=torch.float16):
+        with torch.amp.autocast("cuda", dtype=torch.float16):
             outputs = model(input_ids, images, labels=labels)
             loss = outputs.loss
 
-        total_loss += loss.item()
-        count += 1
+        if loss is not None:
+            total_loss += loss.item()
+            count += 1
+        else:  
+            print(f"Warning: loss is None in evaluate")
+            print(f"input_ids shape: {input_ids.shape}")
+            print(f"labels shape: {labels.shape}")
+            print(f"images shape: {images.shape}")
+            print(f"outputs keys: {dir(outputs)}")
+
+    if count == 0:
+        print("Warning: No valid batches processed in evaluate")
+        return float('inf')
 
     model.train()
     return total_loss / count
@@ -80,6 +91,14 @@ def train_projector(
             with torch.amp.autocast("cuda", dtype=torch.float16):
                 outputs = model(input_ids, images, labels=labels)
                 loss = outputs.loss
+
+            if loss is None:
+                print(f"Warning: loss is None at step {i}")
+                print(f"input_ids shape: {input_ids.shape}")
+                print(f"labels shape: {labels.shape}")
+                print(f"images shape: {images.shape}")
+                print(f"outputs keys: {dir(outputs)}")
+                continue
 
             optimizer.zero_grad()
             loss.backward()
