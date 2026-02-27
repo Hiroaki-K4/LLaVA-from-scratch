@@ -37,6 +37,7 @@ def get_data_loader(batch_size=32, num_workers=4, epoch_steps=1000, split="train
             .to_tuple("jpg", "txt")
             .map_tuple(preprocess, lambda x: x)
             .batched(batch_size)
+            .with_epoch(epoch_steps)
         )
 
     loader = DataLoader(
