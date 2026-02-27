@@ -22,6 +22,63 @@ INSTRUCTION_PROMPTS = [
 ]
 
 
+def prepare_inputs_and_labels(captions, tokenizer, device, max_len=None):
+    """
+    Prepare input_ids and labels from captions
+    """
+    # Randomly select prompts for each caption
+    prompts = [random.choice(INSTRUCTION_PROMPTS) for _ in captions]
+
+    # Prepare inputs and labels
+    input_ids_list = []
+    labels_list = []
+
+    for prompt, caption in zip(prompts, captions):
+        # Tokenize prompt
+        prompt_tokens = tokenizer(prompt, return_tensors="pt", add_special_tokens=False)
+        prompt_ids = prompt_tokens.input_ids[0]
+
+        # Tokenize caption
+        caption_tokens = tokenizer(
+            caption, return_tensors="pt", add_special_tokens=False
+        )
+        caption_ids = caption_tokens.input_ids[0]
+
+        # Combine prompt + caption
+        input_ids = torch.cat([prompt_ids, caption_ids])
+
+        # Labels: ignore prompt part (-100), predict caption part
+        labels = torch.cat([torch.full_like(prompt_ids, -100), caption_ids])
+
+        input_ids_list.append(input_ids)
+        labels_list.append(labels)
+
+    # Pad sequences to same length
+    max_seq_len = max(len(ids) for ids in input_ids_list)
+    if max_len is not None:
+        max_seq_len = min(max_seq_len, max_len)
+
+    input_ids_padded = []
+    labels_padded = []
+
+    for input_ids, labels in zip(input_ids_list, labels_list):
+        # Truncate if too long
+        if max_len is not None and len(input_ids) > max_seq_len:
+            input_ids = input_ids[:max_seq_len]
+            labels = labels[:max_seq_len]
+
+        pad_len = max_seq_len - len(input_ids)
+        input_ids_padded.append(
+            torch.cat([input_ids, torch.full((pad_len,), tokenizer.pad_token_id)])
+        )
+        labels_padded.append(torch.cat([labels, torch.full((pad_len,), -100)]))
+
+    input_ids = torch.stack(input_ids_padded).to(device)
+    labels = torch.stack(labels_padded).to(device)
+
+    return input_ids, labels
+
+
 @torch.no_grad()
 def evaluate(model, val_loader, tokenizer, device):
     model.eval()
@@ -29,50 +86,7 @@ def evaluate(model, val_loader, tokenizer, device):
     count = 0
 
     for images, captions in val_loader:
-        # Randomly select prompts for each caption
-        prompts = [random.choice(INSTRUCTION_PROMPTS) for _ in captions]
-
-        # Prepare inputs and labels
-        input_ids_list = []
-        labels_list = []
-
-        for prompt, caption in zip(prompts, captions):
-            # Tokenize prompt
-            prompt_tokens = tokenizer(
-                prompt, return_tensors="pt", add_special_tokens=False
-            )
-            prompt_ids = prompt_tokens.input_ids[0]
-
-            # Tokenize caption
-            caption_tokens = tokenizer(
-                caption, return_tensors="pt", add_special_tokens=False
-            )
-            caption_ids = caption_tokens.input_ids[0]
-
-            # Combine prompt + caption
-            input_ids = torch.cat([prompt_ids, caption_ids])
-
-            # Labels: ignore prompt part (-100), predict caption part
-            labels = torch.cat([torch.full_like(prompt_ids, -100), caption_ids])
-
-            input_ids_list.append(input_ids)
-            labels_list.append(labels)
-
-        # Pad sequences to same length
-        max_len = max(len(ids) for ids in input_ids_list)
-
-        input_ids_padded = []
-        labels_padded = []
-
-        for input_ids, labels in zip(input_ids_list, labels_list):
-            pad_len = max_len - len(input_ids)
-            input_ids_padded.append(
-                torch.cat([input_ids, torch.full((pad_len,), tokenizer.pad_token_id)])
-            )
-            labels_padded.append(torch.cat([labels, torch.full((pad_len,), -100)]))
-
-        input_ids = torch.stack(input_ids_padded).to(device)
-        labels = torch.stack(labels_padded).to(device)
+        input_ids, labels = prepare_inputs_and_labels(captions, tokenizer, device)
         images = images.to(device)
 
         with torch.amp.autocast("cuda", dtype=torch.float16):
@@ -98,7 +112,7 @@ def evaluate(model, val_loader, tokenizer, device):
 
 
 def train_projector(
-    llm_id, vision_id, batch_size, num_epochs, lr_rate, patience, device
+    llm_id, vision_id, batch_size, num_epochs, lr_rate, patience, eval_interval, device
 ):
     print("Loading models...")
     model = LlavaModel(llm_id, vision_id).to(device)
@@ -118,7 +132,6 @@ def train_projector(
     # Parameters for early stopping
     best_val_loss = float("inf")
     patience_counter = 0
-    eval_interval = 200
 
     model.train()
     print("Starting Training...")
@@ -126,58 +139,9 @@ def train_projector(
     for epoch in range(num_epochs):
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
         for i, (images, captions) in enumerate(pbar):
-            # Randomly select prompts for each caption
-            prompts = [random.choice(INSTRUCTION_PROMPTS) for _ in captions]
-
-            # Prepare inputs and labels
-            input_ids_list = []
-            labels_list = []
-
-            for prompt, caption in zip(prompts, captions):
-                # Tokenize prompt
-                prompt_tokens = tokenizer(
-                    prompt, return_tensors="pt", add_special_tokens=False
-                )
-                prompt_ids = prompt_tokens.input_ids[0]
-
-                # Tokenize caption
-                caption_tokens = tokenizer(
-                    caption, return_tensors="pt", add_special_tokens=False
-                )
-                caption_ids = caption_tokens.input_ids[0]
-
-                # Combine prompt + caption
-                input_ids = torch.cat([prompt_ids, caption_ids])
-
-                # Labels: ignore prompt part (-100), predict caption part
-                labels = torch.cat([torch.full_like(prompt_ids, -100), caption_ids])
-
-                input_ids_list.append(input_ids)
-                labels_list.append(labels)
-
-            # Pad sequences to same length
-            max_len = max(len(ids) for ids in input_ids_list)
-            max_len = min(max_len, 128)  # Limit max length
-
-            input_ids_padded = []
-            labels_padded = []
-
-            for input_ids, labels in zip(input_ids_list, labels_list):
-                # Truncate if too long
-                if len(input_ids) > max_len:
-                    input_ids = input_ids[:max_len]
-                    labels = labels[:max_len]
-
-                pad_len = max_len - len(input_ids)
-                input_ids_padded.append(
-                    torch.cat(
-                        [input_ids, torch.full((pad_len,), tokenizer.pad_token_id)]
-                    )
-                )
-                labels_padded.append(torch.cat([labels, torch.full((pad_len,), -100)]))
-
-            input_ids = torch.stack(input_ids_padded).to(device)
-            labels = torch.stack(labels_padded).to(device)
+            input_ids, labels = prepare_inputs_and_labels(
+                captions, tokenizer, device, max_len=128
+            )
             images = images.to(device)
 
             with torch.amp.autocast("cuda", dtype=torch.float16):
@@ -223,8 +187,17 @@ if __name__ == "__main__":
     num_epochs = 20
     lr_rate = 1e-5
     patience = 3
+    eval_interval = 1000
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    random.seed(42)
 
     train_projector(
-        llm_id, vision_id, batch_size, num_epochs, lr_rate, patience, device
+        llm_id,
+        vision_id,
+        batch_size,
+        num_epochs,
+        lr_rate,
+        patience,
+        eval_interval,
+        device,
     )

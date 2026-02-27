@@ -18,7 +18,7 @@ def get_data_loader(batch_size=32, num_workers=4, epoch_steps=1000, split="train
             f"pipe:curl -s -L {base_url}cc3m-{split}-{i:04d}.tar" for i in range(576)
         ]
         dataset = (
-            wds.WebDataset(all_urls, resampled=True)
+            wds.WebDataset(all_urls, resampled=True, shardshuffle=True)
             .shuffle(2000)
             .decode("pil")
             .to_tuple("jpg", "txt")
@@ -31,7 +31,7 @@ def get_data_loader(batch_size=32, num_workers=4, epoch_steps=1000, split="train
             f"pipe:curl -s -L {base_url}cc3m-{split}-{i:04d}.tar" for i in range(16)
         ]
         dataset = (
-            wds.WebDataset(all_urls, resampled=False)
+            wds.WebDataset(all_urls, resampled=False, shardshuffle=False)
             .shuffle(2000)
             .decode("pil")
             .to_tuple("jpg", "txt")
