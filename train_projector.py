@@ -185,7 +185,7 @@ if __name__ == "__main__":
     vision_id = "openai/clip-vit-large-patch14-336"
     batch_size = 4
     num_epochs = 1
-    lr_rate = 1e-3
+    lr_rate = 1e-5
     patience = 3
     eval_interval = 1000
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
