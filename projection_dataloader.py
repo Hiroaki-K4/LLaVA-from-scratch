@@ -3,7 +3,9 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 
-def get_data_loader(batch_size=32, num_workers=4, epoch_steps=1000, split="train"):
+def get_projection_data_loader(
+    batch_size=32, num_workers=4, epoch_steps=1000, split="train"
+):
     preprocess = transforms.Compose(
         [
             transforms.Resize((336, 336)),
@@ -48,7 +50,7 @@ def get_data_loader(batch_size=32, num_workers=4, epoch_steps=1000, split="train
 
 
 if __name__ == "__main__":
-    loader = get_data_loader(batch_size=8, num_workers=2, split="train")
+    loader = get_projection_data_loader(batch_size=8, num_workers=2, split="train")
     for i, (images, captions) in enumerate(loader):
         print(f"--- Batch {i+1} ---")
         print(
