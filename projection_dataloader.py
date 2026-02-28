@@ -20,7 +20,7 @@ def get_projection_data_loader(
             f"pipe:curl -s -L {base_url}cc3m-{split}-{i:04d}.tar" for i in range(576)
         ]
         dataset = (
-            wds.WebDataset(all_urls, resampled=True, shardshuffle=True)
+            wds.WebDataset(all_urls, resampled=True)
             .shuffle(2000)
             .decode("pil")
             .to_tuple("jpg", "txt")

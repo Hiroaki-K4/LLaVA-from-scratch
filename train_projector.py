@@ -138,7 +138,8 @@ def train_projector(
 
     for epoch in range(num_epochs):
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
-        for i, batch_data in enumerate(pbar):
+        i = 0
+        for batch_data in pbar:
             try:
                 images, captions = batch_data
                 input_ids, labels = prepare_inputs_and_labels(
@@ -152,6 +153,7 @@ def train_projector(
 
                 if loss is None:
                     print(f"Warning: loss is None at step {i}")
+                    i += 1
                     continue
 
                 optimizer.zero_grad()
@@ -160,9 +162,10 @@ def train_projector(
 
                 pbar.set_postfix({"train_loss": loss.item()})
 
-                if (i + 1) % eval_interval == 0:
+                i += 1
+                if i % eval_interval == 0:
                     val_loss = evaluate(model, val_loader, tokenizer, device)
-                    print(f"\nStep {i+1} | Val Loss: {val_loss:.4f}")
+                    print(f"\nStep {i} | Val Loss: {val_loss:.4f}")
 
                     if val_loss < best_val_loss:
                         best_val_loss = val_loss
@@ -182,6 +185,7 @@ def train_projector(
             except (OSError, IOError, RuntimeError) as e:
                 print(f"\nError at step {i}: {type(e).__name__}")
                 print("Skipping this batch and continuing...")
+                i += 1
                 continue
 
 
