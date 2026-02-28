@@ -138,46 +138,51 @@ def train_projector(
 
     for epoch in range(num_epochs):
         pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
-        for i, (images, captions) in enumerate(pbar):
-            input_ids, labels = prepare_inputs_and_labels(
-                captions, tokenizer, device, max_len=128
-            )
-            images = images.to(device)
+        for i, batch_data in enumerate(pbar):
+            try:
+                images, captions = batch_data
+                input_ids, labels = prepare_inputs_and_labels(
+                    captions, tokenizer, device, max_len=128
+                )
+                images = images.to(device)
 
-            with torch.amp.autocast("cuda", dtype=torch.float16):
-                outputs = model(input_ids, images, labels=labels)
-                loss = outputs.loss
+                with torch.amp.autocast("cuda", dtype=torch.float16):
+                    outputs = model(input_ids, images, labels=labels)
+                    loss = outputs.loss
 
-            if loss is None:
-                print(f"Warning: loss is None at step {i}")
-                print(f"input_ids shape: {input_ids.shape}")
-                print(f"labels shape: {labels.shape}")
-                print(f"images shape: {images.shape}")
-                print(f"outputs keys: {dir(outputs)}")
+                if loss is None:
+                    print(f"Warning: loss is None at step {i}")
+                    continue
+
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                pbar.set_postfix({"train_loss": loss.item()})
+
+                if (i + 1) % eval_interval == 0:
+                    val_loss = evaluate(model, val_loader, tokenizer, device)
+                    print(f"\nStep {i+1} | Val Loss: {val_loss:.4f}")
+
+                    if val_loss < best_val_loss:
+                        best_val_loss = val_loss
+                        patience_counter = 0
+                        torch.save(model.projector.state_dict(), "best_projector.pth")
+                        print("New best model saved!")
+                    else:
+                        patience_counter += 1
+                        print(
+                            f"No improvement. Patience: {patience_counter}/{patience}"
+                        )
+
+                    if patience_counter >= patience:
+                        print("Early stopping triggered!")
+                        return
+
+            except (OSError, IOError, RuntimeError) as e:
+                print(f"\nError at step {i}: {type(e).__name__}")
+                print("Skipping this batch and continuing...")
                 continue
-
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
-
-            pbar.set_postfix({"train_loss": loss.item()})
-
-            if (i + 1) % eval_interval == 0:
-                val_loss = evaluate(model, val_loader, tokenizer, device)
-                print(f"\nStep {i+1} | Val Loss: {val_loss:.4f}")
-
-                if val_loss < best_val_loss:
-                    best_val_loss = val_loss
-                    patience_counter = 0
-                    torch.save(model.projector.state_dict(), "best_projector.pth")
-                    print("New best model saved!")
-                else:
-                    patience_counter += 1
-                    print(f"No improvement. Patience: {patience_counter}/{patience}")
-
-                if patience_counter >= patience:
-                    print("Early stopping triggered!")
-                    return
 
 
 if __name__ == "__main__":
