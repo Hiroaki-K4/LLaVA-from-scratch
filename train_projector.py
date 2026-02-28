@@ -122,7 +122,7 @@ def train_projector(
     optimizer = torch.optim.AdamW(model.projector.parameters(), lr=lr_rate)
 
     train_loader = get_data_loader(
-        batch_size=batch_size, num_workers=4, epoch_steps=2000, split="train"
+        batch_size=batch_size, num_workers=4, epoch_steps=100000, split="train"
     )
 
     val_loader = get_data_loader(
@@ -184,8 +184,8 @@ if __name__ == "__main__":
     llm_id = "lmsys/vicuna-7b-v1.5"
     vision_id = "openai/clip-vit-large-patch14-336"
     batch_size = 4
-    num_epochs = 20
-    lr_rate = 1e-5
+    num_epochs = 1
+    lr_rate = 1e-3
     patience = 3
     eval_interval = 1000
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
