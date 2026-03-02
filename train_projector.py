@@ -5,7 +5,7 @@ from tqdm import tqdm
 from transformers import AutoTokenizer
 
 from model import LlavaModel
-from projection_dataloader import get_projection_data_loader
+from projection_dataloader import get_projection_dataloader
 
 INSTRUCTION_PROMPTS = [
     "Describe the image concisely.",
@@ -121,11 +121,11 @@ def train_projector(
 
     optimizer = torch.optim.AdamW(model.projector.parameters(), lr=lr_rate)
 
-    train_loader = get_projection_data_loader(
+    train_loader = get_projection_dataloader(
         batch_size=batch_size, num_workers=4, epoch_steps=100000, split="train"
     )
 
-    val_loader = get_projection_data_loader(
+    val_loader = get_projection_dataloader(
         batch_size=batch_size, num_workers=4, epoch_steps=200, split="validation"
     )
 

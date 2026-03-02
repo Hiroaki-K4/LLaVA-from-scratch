@@ -54,7 +54,7 @@ def get_projection_dataloader(
 
 
 if __name__ == "__main__":
-    loader = get_projection_data_loader(batch_size=8, num_workers=2, split="train")
+    loader = get_projection_dataloader(batch_size=8, num_workers=2, split="train")
     for i, (images, captions) in enumerate(loader):
         print(f"--- Batch {i+1} ---")
         print(
