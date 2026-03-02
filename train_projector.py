@@ -151,8 +151,8 @@ def train_projector(
                     outputs = model(input_ids, images, labels=labels)
                     loss = outputs.loss
 
-                if loss is None:
-                    print(f"Warning: loss is None at step {i}")
+                if loss is None or torch.isnan(loss) or torch.isinf(loss):
+                    print(f"Warning: invalid loss at step {i} (loss={loss})")
                     i += 1
                     continue
 
