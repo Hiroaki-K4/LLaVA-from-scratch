@@ -3,7 +3,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 
 
-def get_projection_data_loader(
+def get_projection_dataloader(
     batch_size=32, num_workers=4, epoch_steps=1000, split="train"
 ):
     preprocess = transforms.Compose(
@@ -15,28 +15,32 @@ def get_projection_data_loader(
     )
 
     base_url = "https://huggingface.co/datasets/pixparse/cc3m-wds/resolve/main/"
+    
+    # Add retry logic to curl command for better reliability
+    curl_cmd = "curl --retry 5 --retry-delay 2 --retry-max-time 60 -s -L"
+    
     if split == "train":
         all_urls = [
-            f"pipe:curl -s -L {base_url}cc3m-{split}-{i:04d}.tar" for i in range(576)
+            f"pipe:{curl_cmd} {base_url}cc3m-{split}-{i:04d}.tar" for i in range(576)
         ]
         dataset = (
-            wds.WebDataset(all_urls, resampled=True)
+            wds.WebDataset(all_urls, resampled=True, handler=wds.warn_and_continue)
             .shuffle(2000)
-            .decode("pil")
-            .to_tuple("jpg", "txt")
+            .decode("pil", handler=wds.warn_and_continue)
+            .to_tuple("jpg", "txt", handler=wds.warn_and_continue)
             .map_tuple(preprocess, lambda x: x)
             .batched(batch_size)
             .with_epoch(epoch_steps)
         )
     elif split == "validation":
         all_urls = [
-            f"pipe:curl -s -L {base_url}cc3m-{split}-{i:04d}.tar" for i in range(16)
+            f"pipe:{curl_cmd} {base_url}cc3m-{split}-{i:04d}.tar" for i in range(16)
         ]
         dataset = (
-            wds.WebDataset(all_urls, resampled=False, shardshuffle=False)
+            wds.WebDataset(all_urls, resampled=False, shardshuffle=False, handler=wds.warn_and_continue)
             .shuffle(2000)
-            .decode("pil")
-            .to_tuple("jpg", "txt")
+            .decode("pil", handler=wds.warn_and_continue)
+            .to_tuple("jpg", "txt", handler=wds.warn_and_continue)
             .map_tuple(preprocess, lambda x: x)
             .batched(batch_size)
             .with_epoch(epoch_steps)
