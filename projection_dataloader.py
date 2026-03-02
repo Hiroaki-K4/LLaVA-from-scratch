@@ -15,10 +15,10 @@ def get_projection_dataloader(
     )
 
     base_url = "https://huggingface.co/datasets/pixparse/cc3m-wds/resolve/main/"
-    
+
     # Add retry logic to curl command for better reliability
     curl_cmd = "curl --retry 5 --retry-delay 2 --retry-max-time 60 -s -L"
-    
+
     if split == "train":
         all_urls = [
             f"pipe:{curl_cmd} {base_url}cc3m-{split}-{i:04d}.tar" for i in range(576)
@@ -37,7 +37,12 @@ def get_projection_dataloader(
             f"pipe:{curl_cmd} {base_url}cc3m-{split}-{i:04d}.tar" for i in range(16)
         ]
         dataset = (
-            wds.WebDataset(all_urls, resampled=False, shardshuffle=False, handler=wds.warn_and_continue)
+            wds.WebDataset(
+                all_urls,
+                resampled=False,
+                shardshuffle=False,
+                handler=wds.warn_and_continue,
+            )
             .shuffle(2000)
             .decode("pil", handler=wds.warn_and_continue)
             .to_tuple("jpg", "txt", handler=wds.warn_and_continue)
