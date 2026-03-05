@@ -4,7 +4,9 @@ from transformers import AutoModelForCausalLM, CLIPVisionModel
 
 
 class LlavaModel(nn.Module):
-    def __init__(self, llm_model_name, vision_model_name):
+    def __init__(
+        self, llm_model_name, vision_model_name, llm_requires_grad, projector_path=None
+    ):
         super().__init__()
         # Vision encoder
         self.vision_encoder = CLIPVisionModel.from_pretrained(vision_model_name)
@@ -12,7 +14,7 @@ class LlavaModel(nn.Module):
 
         # Language model
         self.language_model = AutoModelForCausalLM.from_pretrained(llm_model_name)
-        self.language_model.requires_grad_(False)
+        self.language_model.requires_grad_(llm_requires_grad)
 
         # Projection layers
         vision_hidden_size = self.vision_encoder.config.hidden_size
@@ -22,6 +24,8 @@ class LlavaModel(nn.Module):
             nn.GELU(),
             nn.Linear(llm_hidden_size, llm_hidden_size),
         )
+        if projector_path is not None:
+            self.projector.load_state_dict(torch.load(projector_path))
 
     def forward(self, input_ids, pixel_values, labels=None):
         with torch.no_grad():
@@ -53,7 +57,7 @@ if __name__ == "__main__":
     VISION_ID = "openai/clip-vit-large-patch14-336"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    model = LlavaModel(LLM_ID, VISION_ID).to(device)
+    model = LlavaModel(LLM_ID, VISION_ID, False).to(device)
     dummy_pixels = torch.randn(1, 3, 336, 336)
     dummy_ids = torch.randint(0, 32000, (1, 16))
     dummy_labels = torch.randint(0, 32000, (1, 16))

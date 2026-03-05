@@ -112,10 +112,18 @@ def evaluate(model, val_loader, tokenizer, device):
 
 
 def train_projector(
-    llm_id, vision_id, batch_size, num_epochs, lr_rate, patience, eval_interval, device
+    llm_id,
+    vision_id,
+    batch_size,
+    num_epochs,
+    lr_rate,
+    patience,
+    eval_interval,
+    device,
+    save_model_path,
 ):
     print("Loading models...")
-    model = LlavaModel(llm_id, vision_id).to(device)
+    model = LlavaModel(llm_id, vision_id, False).to(device)
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     tokenizer.pad_token = tokenizer.eos_token
 
@@ -170,7 +178,7 @@ def train_projector(
                     if val_loss < best_val_loss:
                         best_val_loss = val_loss
                         patience_counter = 0
-                        torch.save(model.projector.state_dict(), "best_projector.pth")
+                        torch.save(model.projector.state_dict(), save_model_path)
                         print("New best model saved!")
                     else:
                         patience_counter += 1
@@ -198,6 +206,7 @@ if __name__ == "__main__":
     patience = 3
     eval_interval = 1000
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    save_model_path = "best_projector.pth"
     random.seed(42)
 
     train_projector(
@@ -209,4 +218,5 @@ if __name__ == "__main__":
         patience,
         eval_interval,
         device,
+        save_model_path,
     )

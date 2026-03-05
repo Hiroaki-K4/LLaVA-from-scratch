@@ -6,13 +6,24 @@ from torchvision import transforms
 def get_projection_dataloader(
     batch_size=32, num_workers=4, epoch_steps=1000, split="train"
 ):
-    preprocess = transforms.Compose(
-        [
-            transforms.Resize((336, 336)),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
-        ]
-    )
+    if split == "train":
+        # Random crop
+        transform = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(336, scale=(0.8, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
+    else:
+        transform = transforms.Compose(
+            [
+                transforms.Resize((336, 336)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
 
     base_url = "https://huggingface.co/datasets/pixparse/cc3m-wds/resolve/main/"
 
@@ -28,7 +39,7 @@ def get_projection_dataloader(
             .shuffle(2000)
             .decode("pil", handler=wds.warn_and_continue)
             .to_tuple("jpg", "txt", handler=wds.warn_and_continue)
-            .map_tuple(preprocess, lambda x: x)
+            .map_tuple(transform, lambda x: x)
             .batched(batch_size)
             .with_epoch(epoch_steps)
         )
@@ -46,7 +57,7 @@ def get_projection_dataloader(
             .shuffle(2000)
             .decode("pil", handler=wds.warn_and_continue)
             .to_tuple("jpg", "txt", handler=wds.warn_and_continue)
-            .map_tuple(preprocess, lambda x: x)
+            .map_tuple(transform, lambda x: x)
             .batched(batch_size)
             .with_epoch(epoch_steps)
         )

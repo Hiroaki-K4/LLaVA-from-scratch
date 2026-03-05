@@ -8,13 +8,24 @@ from llava_image_downloader import LLaVAImageDownloader
 
 
 def get_dataloader(tokenizer, batch_size=8, split="train"):
-    transform = transforms.Compose(
-        [
-            transforms.Resize((336, 336)),
-            transforms.ToTensor(),
-            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-        ]
-    )
+    if split == "train":
+        # Random crop
+        transform = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(336, scale=(0.8, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
+    else:
+        transform = transforms.Compose(
+            [
+                transforms.Resize((336, 336)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
 
     dataset = load_dataset(
         "liuhaotian/LLaVA-Instruct-150K", split=split, streaming=True
