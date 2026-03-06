@@ -10,6 +10,7 @@ dependencies = [
     "datasets>=4.5.0",
     "ijson>=3.4.0.post0",
     "matplotlib>=3.10.8",
+    "peft>=0.18.1",
     "pillow>=12.1.1",
     "protobuf>=6.33.5",
     "psutil>=7.2.2",

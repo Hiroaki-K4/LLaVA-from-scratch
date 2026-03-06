@@ -123,7 +123,7 @@ def train_projector(
     save_model_path,
 ):
     print("Loading models...")
-    model = LlavaModel(llm_id, vision_id, False).to(device)
+    model = LlavaModel(llm_id, vision_id).to(device)
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     tokenizer.pad_token = tokenizer.eos_token
 

@@ -1,3 +1,6 @@
+import pickle
+from pathlib import Path
+
 import torch
 from datasets import load_dataset
 from torch.utils.data import DataLoader
@@ -7,9 +10,60 @@ from transformers import AutoTokenizer
 from llava_image_downloader import LLaVAImageDownloader
 
 
-def get_dataloader(tokenizer, batch_size=8, split="train"):
-    if split == "train":
-        # Random crop
+def get_dataloader(tokenizer, batch_size=8, split="train", validation_size=1000):
+    """
+    Create a DataLoader for LLaVA training or validation.
+
+    For validation: Creates a fixed validation set (cached on disk) from the first N samples.
+    For training: Uses streaming dataset to avoid loading all data into memory.
+
+    Args:
+        tokenizer: Tokenizer for text processing
+        batch_size: Batch size
+        split: "train" or "validation"
+        validation_size: Number of samples to use for validation set
+    """
+    validation_cache_path = Path("validation_samples.pkl")
+
+    if split == "validation":
+        # Load or create fixed validation set
+        if validation_cache_path.exists():
+            print(f"Loading cached validation set from {validation_cache_path}")
+            with open(validation_cache_path, "rb") as f:
+                dataset = pickle.load(f)
+        else:
+            # First time: create validation set from streaming dataset
+            print(f"Creating validation set ({validation_size} samples)...")
+            stream = load_dataset(
+                "liuhaotian/LLaVA-Instruct-150K", split="train", streaming=True
+            )
+            dataset = []
+            for i, sample in enumerate(stream):
+                if i >= validation_size:
+                    break
+                dataset.append(sample)
+
+            # Cache for future use
+            with open(validation_cache_path, "wb") as f:
+                pickle.dump(dataset, f)
+            print(f"Saved {len(dataset)} validation samples to cache")
+
+        # No augmentation for validation
+        transform = transforms.Compose(
+            [
+                transforms.Resize((336, 336)),
+                transforms.ToTensor(),
+                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
+            ]
+        )
+
+    elif split == "train":
+        # Use streaming dataset for training
+        dataset = load_dataset(
+            "liuhaotian/LLaVA-Instruct-150K", split="train", streaming=True
+        )
+
+        # Data augmentation for training
         transform = transforms.Compose(
             [
                 transforms.RandomResizedCrop(336, scale=(0.8, 1.0)),
@@ -19,17 +73,7 @@ def get_dataloader(tokenizer, batch_size=8, split="train"):
             ]
         )
     else:
-        transform = transforms.Compose(
-            [
-                transforms.Resize((336, 336)),
-                transforms.ToTensor(),
-                transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225)),
-            ]
-        )
-
-    dataset = load_dataset(
-        "liuhaotian/LLaVA-Instruct-150K", split=split, streaming=True
-    )
+        raise ValueError(f"Invalid split: {split}. Must be 'train' or 'validation'.")
 
     downloader = LLaVAImageDownloader()
 
@@ -152,9 +196,13 @@ if __name__ == "__main__":
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     tokenizer.pad_token = tokenizer.eos_token
 
-    loader = get_dataloader(tokenizer, batch_size=2, split="train")
+    # Test train loader
+    print("=" * 50)
+    print("Testing Train Loader (streaming)")
+    print("=" * 50)
+    train_loader = get_dataloader(tokenizer, batch_size=2, split="train")
 
-    for i, batch in enumerate(loader):
+    for i, batch in enumerate(train_loader):
         if batch is None:
             continue
 
@@ -164,9 +212,30 @@ if __name__ == "__main__":
         print(f"labels shape: {batch['labels'].shape}")
         print(f"attention_mask shape: {batch['attention_mask'].shape}")
 
-        # Show first sample details
-        print(f"\nFirst sample input_ids: {batch['input_ids'][0]}")
-        print(f"First sample labels: {batch['labels'][0]}")
-
-        if i >= 2:
+        if i >= 1:
             break
+
+    # Test validation loader
+    print("\n" + "=" * 50)
+    print("Testing Validation Loader (cached)")
+    print("=" * 50)
+    val_loader = get_dataloader(
+        tokenizer, batch_size=2, split="validation", validation_size=100
+    )
+
+    for i, batch in enumerate(val_loader):
+        if batch is None:
+            continue
+
+        print(f"\n=== Batch {i} ===")
+        print(f"pixel_values shape: {batch['pixel_values'].shape}")
+        print(f"input_ids shape: {batch['input_ids'].shape}")
+        print(f"labels shape: {batch['labels'].shape}")
+        print(f"attention_mask shape: {batch['attention_mask'].shape}")
+
+        if i >= 1:
+            break
+
+    print("\n" + "=" * 50)
+    print("DataLoader test completed successfully!")
+    print("=" * 50)
