@@ -61,7 +61,6 @@ def train_llava(
 
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
     tokenizer.pad_token = tokenizer.eos_token
-    print(model)
 
     train_loader = get_dataloader(
         tokenizer=tokenizer, batch_size=batch_size, split="train"
@@ -82,8 +81,6 @@ def train_llava(
         i = 0
         for batch_data in pbar:
             try:
-                print(batch_data)
-                input()
 
                 input_ids = batch_data["input_ids"].to(device)
                 images = batch_data["pixel_values"].to(device)
