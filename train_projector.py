@@ -24,7 +24,7 @@ INSTRUCTION_PROMPTS = [
 
 def prepare_inputs_and_labels(captions, tokenizer, device, max_len=None):
     """
-    Prepare input_ids and labels from captions
+    Prepare input_ids, attention_mask, and labels from captions
     """
     # Randomly select prompts for each caption
     prompts = [random.choice(INSTRUCTION_PROMPTS) for _ in captions]
@@ -60,6 +60,7 @@ def prepare_inputs_and_labels(captions, tokenizer, device, max_len=None):
 
     input_ids_padded = []
     labels_padded = []
+    attention_mask_padded = []
 
     for input_ids, labels in zip(input_ids_list, labels_list):
         # Truncate if too long
@@ -68,15 +69,22 @@ def prepare_inputs_and_labels(captions, tokenizer, device, max_len=None):
             labels = labels[:max_seq_len]
 
         pad_len = max_seq_len - len(input_ids)
+        seq_len = len(input_ids)
+
         input_ids_padded.append(
             torch.cat([input_ids, torch.full((pad_len,), tokenizer.pad_token_id)])
         )
         labels_padded.append(torch.cat([labels, torch.full((pad_len,), -100)]))
+        # Attention mask: 1 for real tokens, 0 for padding
+        attention_mask_padded.append(
+            torch.cat([torch.ones(seq_len), torch.zeros(pad_len)])
+        )
 
     input_ids = torch.stack(input_ids_padded).to(device)
     labels = torch.stack(labels_padded).to(device)
+    attention_mask = torch.stack(attention_mask_padded).to(device)
 
-    return input_ids, labels
+    return input_ids, attention_mask, labels
 
 
 @torch.no_grad()
@@ -86,11 +94,15 @@ def evaluate(model, val_loader, tokenizer, device):
     count = 0
 
     for images, captions in val_loader:
-        input_ids, labels = prepare_inputs_and_labels(captions, tokenizer, device)
+        input_ids, attention_mask, labels = prepare_inputs_and_labels(
+            captions, tokenizer, device
+        )
         images = images.to(device)
 
         with torch.amp.autocast("cuda", dtype=torch.float16):
-            outputs = model(input_ids, images, labels=labels)
+            outputs = model(
+                input_ids, images, attention_mask=attention_mask, labels=labels
+            )
             loss = outputs.loss
 
         if loss is not None:
@@ -150,13 +162,15 @@ def train_projector(
         for batch_data in pbar:
             try:
                 images, captions = batch_data
-                input_ids, labels = prepare_inputs_and_labels(
+                input_ids, attention_mask, labels = prepare_inputs_and_labels(
                     captions, tokenizer, device, max_len=128
                 )
                 images = images.to(device)
 
                 with torch.amp.autocast("cuda", dtype=torch.float16):
-                    outputs = model(input_ids, images, labels=labels)
+                    outputs = model(
+                        input_ids, images, attention_mask=attention_mask, labels=labels
+                    )
                     loss = outputs.loss
 
                 if loss is None or torch.isnan(loss) or torch.isinf(loss):

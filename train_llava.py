@@ -35,6 +35,32 @@ def train_llava(
         tokenizer=tokenizer, batch_size=batch_size, split="validation"
     )
 
+    # Parameters for early stopping
+    best_val_loss = float("inf")
+    patience_counter = 0
+
+    model.train()
+    print("Starting Training...")
+
+    for epoch in range(num_epochs):
+        pbar = tqdm(train_loader, desc=f"Epoch {epoch}")
+        i = 0
+        for batch_data in pbar:
+            try:
+                print(batch_data)
+                input()
+
+                # images =
+                # with torch.amp.autocast("cuda", dtype=torch.float16):
+                #     outputs = model(input_ids, images, labels=labels)
+                #     loss = outputs.loss
+
+            except (OSError, IOError, RuntimeError) as e:
+                print(f"\nError at step {i}: {type(e).__name__}")
+                print("Skipping this batch and continuing...")
+                i += 1
+                continue
+
 
 if __name__ == "__main__":
     llm_id = "lmsys/vicuna-7b-v1.5"

@@ -25,7 +25,7 @@ class LlavaModel(nn.Module):
         if projector_path is not None:
             self.projector.load_state_dict(torch.load(projector_path))
 
-    def forward(self, input_ids, pixel_values, labels=None):
+    def forward(self, input_ids, pixel_values, attention_mask=None, labels=None):
         with torch.no_grad():
             outputs = self.vision_encoder(pixel_values, output_hidden_states=True)
             image_features = outputs.hidden_states[-2][:, 1:]
@@ -34,6 +34,17 @@ class LlavaModel(nn.Module):
         input_embeds = self.language_model.get_input_embeddings()(input_ids)
 
         combined_embeds = torch.cat([image_features, input_embeds], dim=1)
+
+        # Prepare attention_mask
+        if attention_mask is not None:
+            batch_size, img_seq_len, _ = image_features.shape
+            # Image features are always attended to (all 1s)
+            image_attention = torch.ones(
+                (batch_size, img_seq_len),
+                device=attention_mask.device,
+                dtype=attention_mask.dtype,
+            )
+            attention_mask = torch.cat([image_attention, attention_mask], dim=1)
 
         if labels is not None:
             batch_size, img_seq_len, _ = image_features.shape
@@ -46,7 +57,9 @@ class LlavaModel(nn.Module):
             labels = torch.cat([ignore_labels, labels], dim=1)
 
         return self.language_model(
-            inputs_embeds=combined_embeds.to(torch.float16), labels=labels
+            inputs_embeds=combined_embeds.to(torch.float16),
+            attention_mask=attention_mask,
+            labels=labels,
         )
 
 
@@ -59,11 +72,18 @@ if __name__ == "__main__":
     dummy_pixels = torch.randn(1, 3, 336, 336)
     dummy_ids = torch.randint(0, 32000, (1, 16))
     dummy_labels = torch.randint(0, 32000, (1, 16))
+    dummy_attention_mask = torch.ones(1, 16, dtype=torch.long)
 
     dummy_ids = dummy_ids.to(device)
     dummy_pixels = dummy_pixels.to(device)
     dummy_labels = dummy_labels.to(device)
+    dummy_attention_mask = dummy_attention_mask.to(device)
 
-    outputs = model(dummy_ids, dummy_pixels, labels=dummy_labels)
+    outputs = model(
+        dummy_ids,
+        dummy_pixels,
+        attention_mask=dummy_attention_mask,
+        labels=dummy_labels,
+    )
     print(f"Loss: {outputs.loss.item():.4f}")
     print(f"Logits shape: {outputs.logits.shape}")
