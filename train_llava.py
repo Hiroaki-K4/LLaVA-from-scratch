@@ -62,6 +62,7 @@ def train_llava(
     # Enable gradient checkpointing to save memory
     model.language_model.enable_input_require_grads()
     model.language_model.gradient_checkpointing_enable()
+    model.language_model.config.use_cache = False  # Disable cache for gradient checkpointing
     
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr_rate)
 
