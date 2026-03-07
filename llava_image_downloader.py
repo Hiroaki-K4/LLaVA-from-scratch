@@ -43,12 +43,9 @@ class LLaVAImageDownloader:
 
             for attempt in range(max_retries):
                 try:
-                    print(f"Downloading: {url} (attempt {attempt+1}/{max_retries})")
                     response = requests.get(url, timeout=30)
-
                     if response.status_code == 200:
                         image = Image.open(io.BytesIO(response.content))
-                        print(f"Download successful: {filename}")
                         return image
 
                 except Exception as e:
