@@ -52,11 +52,17 @@ def train_llava(
     eval_interval,
     device,
     save_model_path,
+    gradient_accumulation_steps=1,
 ):
     print("Loading models...")
     model = LlavaModel(llm_id, vision_id, projector_path).to(device)
     lora_config = LoraConfig(r=8, lora_alpha=32, target_modules=["q_proj", "v_proj"])
     model.language_model = get_peft_model(model.language_model, lora_config)
+    
+    # Enable gradient checkpointing to save memory
+    model.language_model.enable_input_require_grads()
+    model.language_model.gradient_checkpointing_enable()
+    
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr_rate)
 
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
@@ -89,21 +95,25 @@ def train_llava(
 
                 with torch.amp.autocast("cuda", dtype=torch.float16):
                     outputs = model(input_ids, images, attention_mask, labels)
-                    loss = outputs.loss
+                    loss = outputs.loss / gradient_accumulation_steps
 
                 if loss is None or torch.isnan(loss) or torch.isinf(loss):
                     print(f"Warning: invalid loss at step {i} (loss={loss})")
                     i += 1
                     continue
 
-                optimizer.zero_grad()
                 loss.backward()
-                optimizer.step()
+                
+                if (i + 1) % gradient_accumulation_steps == 0:
+                    optimizer.step()
+                    optimizer.zero_grad()
+                    torch.cuda.empty_cache()  # Clear memory cache
 
-                pbar.set_postfix({"train_loss": loss.item()})
+                pbar.set_postfix({"train_loss": loss.item() * gradient_accumulation_steps})
 
                 i += 1
-                if i % eval_interval == 0:
+                if i % eval_interval == 0 and (i % gradient_accumulation_steps == 0):
+                    torch.cuda.empty_cache()  # Clear cache before evaluation
                     val_loss = evaluate(model, val_loader, device)
                     print(f"\nStep {i} | Val Loss: {val_loss:.4f}")
 
@@ -125,6 +135,7 @@ def train_llava(
             except (OSError, IOError, RuntimeError) as e:
                 print(f"\nError at step {i}: {type(e).__name__}")
                 print("Skipping this batch and continuing...")
+                torch.cuda.empty_cache()  # Clear memory after error
                 i += 1
                 continue
 
@@ -133,11 +144,12 @@ if __name__ == "__main__":
     llm_id = "lmsys/vicuna-7b-v1.5"
     vision_id = "openai/clip-vit-large-patch14-336"
     projector_path = "best_projector.pth"
-    batch_size = 4
+    batch_size = 2
     num_epochs = 1
     lr_rate = 1e-5
     patience = 3
     eval_interval = 1000
+    gradient_accumulation_steps = 2  # Effective batch size = 2 * 2 = 4
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     save_model_path = "best_llava.pth"
 
@@ -152,4 +164,5 @@ if __name__ == "__main__":
         eval_interval,
         device,
         save_model_path,
+        gradient_accumulation_steps,
     )
