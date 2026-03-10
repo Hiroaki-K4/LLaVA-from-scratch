@@ -58,12 +58,14 @@ def train_llava(
     model = LlavaModel(llm_id, vision_id, projector_path).to(device)
     lora_config = LoraConfig(r=8, lora_alpha=32, target_modules=["q_proj", "v_proj"])
     model.language_model = get_peft_model(model.language_model, lora_config)
-    
+
     # Enable gradient checkpointing to save memory
     model.language_model.enable_input_require_grads()
     model.language_model.gradient_checkpointing_enable()
-    model.language_model.config.use_cache = False  # Disable cache for gradient checkpointing
-    
+    model.language_model.config.use_cache = (
+        False  # Disable cache for gradient checkpointing
+    )
+
     optimizer = torch.optim.AdamW(model.parameters(), lr=lr_rate)
 
     tokenizer = AutoTokenizer.from_pretrained(llm_id)
@@ -104,13 +106,15 @@ def train_llava(
                     continue
 
                 loss.backward()
-                
+
                 if (i + 1) % gradient_accumulation_steps == 0:
                     optimizer.step()
                     optimizer.zero_grad()
                     torch.cuda.empty_cache()  # Clear memory cache
 
-                pbar.set_postfix({"train_loss": loss.item() * gradient_accumulation_steps})
+                pbar.set_postfix(
+                    {"train_loss": loss.item() * gradient_accumulation_steps}
+                )
 
                 i += 1
                 if i % eval_interval == 0 and (i % gradient_accumulation_steps == 0):
