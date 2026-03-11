@@ -53,7 +53,7 @@ def generate_response(
     return response
 
 
-def infer(llm_model_name, vision_model_name, projector_path, llava_model_path):
+def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, device):
     model = LlavaModel(
         llm_model_name=llm_model_name,
         vision_model_name=vision_model_name,
@@ -67,7 +67,7 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path):
     tokenizer.pad_token = tokenizer.eos_token
     image_processor = CLIPImageProcessor.from_pretrained(vision_model_name)
 
-    image_path = "example.jpg"
+    image_path = "caption.jpg"
     question = "What is in this image"
 
     print(f"\nQuestion: {question}")
@@ -78,8 +78,9 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path):
 
 
 if __name__ == "__main__":
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     llm_model_name = "lmsys/vicuna-7b-v1.5"
     vision_model_name = "openai/clip-vit-large-patch14-336"
     projector_path = "best_projector.pth"
     llava_model_path = "best_llava.pth"
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    infer(llm_model_name, vision_model_name, projector_path, llava_model_path, device)
