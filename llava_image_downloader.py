@@ -46,7 +46,8 @@ class LLaVAImageDownloader:
                     response = requests.get(url, timeout=30)
                     if response.status_code == 200:
                         image = Image.open(io.BytesIO(response.content))
-                        return image
+                        # Convert to RGB to handle grayscale images
+                        return image.convert("RGB")
 
                 except Exception as e:
                     print(f"Download error (attempt {attempt+1}): {e}")
