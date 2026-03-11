@@ -18,6 +18,40 @@ def generate_response(
     full_prompt = f"USER: <image>\n{prompt_text} ASSISTANT:"
     input_ids = tokenizer(full_prompt, return_tensors="pt")["input_ids"].to(device)
 
+    with torch.no_grad():
+        vision_outputs = model.vision_encoder(pixel_values, output_hidden_states=True)
+        image_features = vision_outputs.hidden_states[-2][:, 1:]
+
+        image_features = model.projector(image_features)
+
+        input_embeds = model.language_model.get_input_embeddings()(input_ids)
+        combined_embeds = torch.cat([image_features, input_embeds], dim=1)
+
+        batch_size, img_seq_len, _ = image_features.shape
+        text_seq_len = input_ids.shape[1]
+        attention_mask = torch.ones(
+            (batch_size, img_seq_len + text_seq_len), device=device, dtype=torch.long
+        )
+
+        generate_ids = model.language_model.generate(
+            input_embeds=combined_embeds.to(torch.float16),
+            attention_mask=attention_mask,
+            max_new_tokens=512,
+            do_sample=True,
+            temperature=0.7,
+            top_p=0.9,
+            pad_token_id=tokenizer.eos_token_id,
+        )
+
+    generated_text = tokenizer.decode(generate_ids[0], skip_special_tokens=True)
+
+    if "ASSISTANT:" in generated_text:
+        response = generated_text.split("ASSISTANT:")[-1].strip()
+    else:
+        response = generated_text
+
+    return response
+
 
 def infer(llm_model_name, vision_model_name, projector_path, llava_model_path):
     model = LlavaModel(
