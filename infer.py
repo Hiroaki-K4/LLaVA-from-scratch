@@ -1,3 +1,5 @@
+import os
+
 import torch
 from peft import PeftModel
 from PIL import Image
@@ -67,14 +69,39 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
     tokenizer.pad_token = tokenizer.eos_token
     image_processor = CLIPImageProcessor.from_pretrained(vision_model_name)
 
-    image_path = "caption.jpg"
-    question = "What is in this image"
-
-    print(f"\nQuestion: {question}")
-    response = generate_response(
-        model, tokenizer, image_processor, image_path, question, device
+    image_path = None
+    print(
+        "ASSISTANT: Please ask your question. If you want to upload a new image, type /image <image path>. If you want to finish this conversation, type /exit."
     )
-    print(f"Answer: {response}")
+    while True:
+        user_input = input("USER: ")
+        if user_input.startswith("/image"):
+            image_path = user_input[6:].strip()
+            if not os.path.exists(image_path):
+                print(
+                    "ASSISTANT: Image path is wrong. Please specify appropriate image path."
+                )
+                continue
+            try:
+                with Image.open(image_path) as img:
+                    img.verify()
+            except (IOError, SyntaxError):
+                print(
+                    "ASSISTANT: Image can't be opened. Please specify appropriate image path."
+                )
+            continue
+        elif user_input.startswith("/exit"):
+            print("See you again.")
+            break
+
+        if image_path is None:
+            print("ASSISTANT: Please specify image path first.")
+            continue
+
+        response = generate_response(
+            model, tokenizer, image_processor, image_path, user_input, device
+        )
+        print(f"ASSISTANT: {response}")
 
 
 if __name__ == "__main__":
