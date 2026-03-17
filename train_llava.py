@@ -125,7 +125,11 @@ def train_llava(
                     if val_loss < best_val_loss:
                         best_val_loss = val_loss
                         patience_counter = 0
-                        torch.save(model.projector.state_dict(), save_model_path)
+                        model.language_model.save_pretrained(save_model_path)
+                        torch.save(
+                            model.projector.state_dict(),
+                            f"{save_model_path}_projector.pth",
+                        )
                         print("New best model saved!")
                     else:
                         patience_counter += 1
@@ -156,7 +160,7 @@ if __name__ == "__main__":
     eval_interval = 1000
     gradient_accumulation_steps = 2  # Effective batch size = 2 * 2 = 4
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    save_model_path = "best_llava.pth"
+    save_model_path = "best_llava"  # Directory for PEFT adapter
 
     train_llava(
         llm_id,
