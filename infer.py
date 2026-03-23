@@ -53,22 +53,10 @@ def generate_response(
     print(f"DEBUG: First 10 tokens of input_ids: {input_ids[0][:10].tolist()}")
     print(f"DEBUG: First 10 tokens of generate_ids: {generate_ids[0][:10].tolist()}")
     
-    # Check if generate_ids starts with input tokens
-    # When using inputs_embeds, generate() typically returns the full sequence
-    # We need to skip the input portion (text tokens, not image features)
-    if generate_ids.shape[1] > input_ids.shape[1]:
-        # Skip only the text input tokens (not the image features)
-        response_ids = generate_ids[0][input_ids.shape[1]:]
-        print(f"DEBUG: Skipping {input_ids.shape[1]} input tokens")
-    else:
-        # If generate_ids is shorter than expected, decode everything
-        response_ids = generate_ids[0]
-        print(f"DEBUG: Using all generate_ids tokens")
-    
-    print(f"DEBUG: response_ids length: {len(response_ids)}")
-    
+    # The first tokens don't match, so generate_ids contains only newly generated tokens
+    # No need to skip anything
     generated_text = tokenizer.decode(
-        response_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
+        generate_ids[0], skip_special_tokens=True
     )
 
     # The generated text should be the response directly
