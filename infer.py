@@ -53,6 +53,17 @@ def generate_response(
     print(f"DEBUG: First 10 tokens of input_ids: {input_ids[0][:10].tolist()}")
     print(f"DEBUG: First 10 tokens of generate_ids: {generate_ids[0][:10].tolist()}")
     
+    # Debug: decode first few tokens individually
+    print("DEBUG: First 5 tokens decoded individually:")
+    for i in range(min(5, len(generate_ids[0]))):
+        token_id = generate_ids[0][i].item()
+        decoded = tokenizer.decode([token_id])
+        print(f"  Token {i}: {token_id} -> '{decoded}'")
+    
+    # Decode first 10 tokens together
+    first_10_decoded = tokenizer.decode(generate_ids[0][:10])
+    print(f"DEBUG: First 10 tokens decoded together: '{first_10_decoded}'")
+    
     # The first tokens don't match, so generate_ids contains only newly generated tokens
     # No need to skip anything
     generated_text = tokenizer.decode(
