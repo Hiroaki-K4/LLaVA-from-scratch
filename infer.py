@@ -44,9 +44,6 @@ def generate_response(
             inputs_embeds=combined_embeds.to(torch.float16),
             attention_mask=attention_mask,
             max_new_tokens=512,
-            do_sample=True,
-            temperature=0.7,
-            top_p=0.9,
             pad_token_id=tokenizer.eos_token_id,
         )
 
@@ -66,7 +63,7 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
         model.language_model, llava_model_path
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(llm_model_name, use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(llm_model_name)
     tokenizer.pad_token = tokenizer.eos_token
     image_processor = CLIPImageProcessor.from_pretrained(vision_model_name)
 
