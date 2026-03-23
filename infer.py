@@ -13,9 +13,9 @@ def generate_response(
 ):
     model.eval()
     image = Image.open(image_path).convert("RGB")
-    pixel_values = image_processor(image=image, return_tensors="pt")["pixel_values"].to(
-        device
-    )
+    pixel_values = image_processor(images=image, return_tensors="pt")[
+        "pixel_values"
+    ].to(device)
 
     full_prompt = f"USER: <image>\n{prompt_text} ASSISTANT:"
     input_ids = tokenizer(full_prompt, return_tensors="pt")["input_ids"].to(device)
@@ -107,7 +107,7 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
 if __name__ == "__main__":
     llm_model_name = "lmsys/vicuna-7b-v1.5"
     vision_model_name = "openai/clip-vit-large-patch14-336"
-    projector_path = "best_llava_projector.pth"  # Stage 2で再訓練されたプロジェクター
+    projector_path = "best_llava_projector.pth"  # Projector retrained in Stage 2
     llava_model_path = "best_llava"  # Directory containing PEFT adapter
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     infer(llm_model_name, vision_model_name, projector_path, llava_model_path, device)
