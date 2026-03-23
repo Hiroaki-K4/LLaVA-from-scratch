@@ -46,17 +46,34 @@ def generate_response(
         )
 
     # Debug information
+    print(f"DEBUG: image_features shape: {image_features.shape}")
+    print(f"DEBUG: input_ids shape: {input_ids.shape}")
     print(f"DEBUG: combined_embeds shape: {combined_embeds.shape}")
     print(f"DEBUG: generate_ids shape: {generate_ids.shape}")
+    print(f"DEBUG: First 10 tokens of input_ids: {input_ids[0][:10].tolist()}")
+    print(f"DEBUG: First 10 tokens of generate_ids: {generate_ids[0][:10].tolist()}")
     
-    # When using inputs_embeds, generate() returns only the newly generated tokens
+    # Check if generate_ids starts with input tokens
+    # When using inputs_embeds, generate() typically returns the full sequence
+    # We need to skip the input portion (text tokens, not image features)
+    if generate_ids.shape[1] > input_ids.shape[1]:
+        # Skip only the text input tokens (not the image features)
+        response_ids = generate_ids[0][input_ids.shape[1]:]
+        print(f"DEBUG: Skipping {input_ids.shape[1]} input tokens")
+    else:
+        # If generate_ids is shorter than expected, decode everything
+        response_ids = generate_ids[0]
+        print(f"DEBUG: Using all generate_ids tokens")
+    
+    print(f"DEBUG: response_ids length: {len(response_ids)}")
+    
     generated_text = tokenizer.decode(
-        generate_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True
+        response_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
     )
 
     # The generated text should be the response directly
     response = generated_text.strip()
-    print(f"DEBUG: generated_text length: {len(generated_text)}")
+    print(f"DEBUG: generated_text[:200]: {generated_text[:200]}")
 
     return response
 
