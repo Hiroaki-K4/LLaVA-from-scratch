@@ -17,7 +17,12 @@ def generate_response(
         "pixel_values"
     ].to(device)
 
-    full_prompt = f"USER: <image>\n{prompt_text} ASSISTANT:"
+    # Use the same format as training
+    system_msg = (
+        "A chat between a curious user and an artificial intelligence assistant. "
+        "The assistant gives helpful, detailed, and polite answers to the user's questions."
+    )
+    full_prompt = f"{system_msg}\n### Human: {prompt_text}\n### Assistant:"
     input_ids = tokenizer(full_prompt, return_tensors="pt")["input_ids"].to(device)
 
     with torch.no_grad():
@@ -45,34 +50,8 @@ def generate_response(
             pad_token_id=tokenizer.eos_token_id,
         )
 
-    # Debug information
-    print(f"DEBUG: image_features shape: {image_features.shape}")
-    print(f"DEBUG: input_ids shape: {input_ids.shape}")
-    print(f"DEBUG: combined_embeds shape: {combined_embeds.shape}")
-    print(f"DEBUG: generate_ids shape: {generate_ids.shape}")
-    print(f"DEBUG: First 10 tokens of input_ids: {input_ids[0][:10].tolist()}")
-    print(f"DEBUG: First 10 tokens of generate_ids: {generate_ids[0][:10].tolist()}")
-    
-    # Debug: decode first few tokens individually
-    print("DEBUG: First 5 tokens decoded individually:")
-    for i in range(min(5, len(generate_ids[0]))):
-        token_id = generate_ids[0][i].item()
-        decoded = tokenizer.decode([token_id])
-        print(f"  Token {i}: {token_id} -> '{decoded}'")
-    
-    # Decode first 10 tokens together
-    first_10_decoded = tokenizer.decode(generate_ids[0][:10])
-    print(f"DEBUG: First 10 tokens decoded together: '{first_10_decoded}'")
-    
-    # The first tokens don't match, so generate_ids contains only newly generated tokens
-    # No need to skip anything
-    generated_text = tokenizer.decode(
-        generate_ids[0], skip_special_tokens=True
-    )
-
-    # The generated text should be the response directly
+    generated_text = tokenizer.decode(generate_ids[0], skip_special_tokens=True)
     response = generated_text.strip()
-    print(f"DEBUG: generated_text[:200]: {generated_text[:200]}")
 
     return response
 
@@ -93,15 +72,15 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
 
     image_path = None
     print(
-        "ASSISTANT: Please ask your question. If you want to upload a new image, type /image <image path>. If you want to finish this conversation, type /exit."
+        "### Assistant: Please ask your question. If you want to upload a new image, type /image <image path>. If you want to finish this conversation, type /exit."
     )
     while True:
-        user_input = input("USER: ")
+        user_input = input("### Human: ")
         if user_input.startswith("/image"):
             image_path = user_input[6:].strip()
             if not os.path.exists(image_path):
                 print(
-                    "ASSISTANT: Image path is wrong. Please specify appropriate image path."
+                    "### Assistant: Image path is wrong. Please specify appropriate image path."
                 )
                 continue
             try:
@@ -109,7 +88,7 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
                     img.verify()
             except (IOError, SyntaxError):
                 print(
-                    "ASSISTANT: Image can't be opened. Please specify appropriate image path."
+                    "### Assistant: Image can't be opened. Please specify appropriate image path."
                 )
             continue
         elif user_input.startswith("/exit"):
@@ -117,13 +96,13 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
             break
 
         if image_path is None:
-            print("ASSISTANT: Please specify image path first.")
+            print("### Assistant: Please specify image path first.")
             continue
 
         response = generate_response(
             model, tokenizer, image_processor, image_path, user_input, device
         )
-        print(f"ASSISTANT: {response}")
+        print(f"### Assistant: {response}")
 
 
 if __name__ == "__main__":
