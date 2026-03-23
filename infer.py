@@ -45,15 +45,24 @@ def generate_response(
             pad_token_id=tokenizer.eos_token_id,
         )
 
+    # Debug information
+    print(f"DEBUG: combined_embeds shape: {combined_embeds.shape}")
+    print(f"DEBUG: generate_ids shape: {generate_ids.shape}")
+    print(f"DEBUG: input_length: {combined_embeds.shape[1]}")
+    
     # Skip the input portion and decode only the newly generated tokens
     input_length = combined_embeds.shape[1]
     response_ids = generate_ids[0][input_length:]
+    print(f"DEBUG: response_ids length: {len(response_ids)}")
+    print(f"DEBUG: response_ids: {response_ids[:20]}")  # First 20 tokens
+    
     generated_text = tokenizer.decode(
         response_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
     )
 
     # The generated text should be the response directly
     response = generated_text.strip()
+    print(f"DEBUG: generated_text: {generated_text[:100]}")  # First 100 chars
 
     return response
 
