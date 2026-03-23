@@ -12,6 +12,24 @@ prompt = "Explain the concept of diffusion models in simple terms."
 
 inputs = tokenizer(prompt, return_tensors="pt").to("cuda")
 
+print("Input tokens:", inputs["input_ids"][0].tolist()[:20])
+print("Input decoded:", tokenizer.decode(inputs["input_ids"][0]))
+print()
+
 outputs = model.generate(**inputs, max_new_tokens=200, temperature=0.7)
 
-print(tokenizer.decode(outputs[0], skip_special_tokens=True))
+print("Output tokens:", outputs[0].tolist()[:30])
+print("Input length:", len(inputs["input_ids"][0]))
+print("Output length:", len(outputs[0]))
+print()
+
+# Decode full output
+full_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+print("Full output:", full_text[:200])
+print()
+
+# Decode only generated part
+generated_ids = outputs[0][len(inputs["input_ids"][0]):]
+print("Generated tokens:", generated_ids.tolist()[:20])
+generated_text = tokenizer.decode(generated_ids, skip_special_tokens=True)
+print("Generated only:", generated_text[:200])
