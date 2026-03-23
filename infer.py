@@ -45,7 +45,9 @@ def generate_response(
             pad_token_id=tokenizer.eos_token_id,
         )
 
-    generated_text = tokenizer.decode(generate_ids[0], skip_special_tokens=True)
+    generated_text = tokenizer.decode(
+        generate_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True
+    )
 
     if "ASSISTANT:" in generated_text:
         response = generated_text.split("ASSISTANT:")[-1].strip()
@@ -65,7 +67,7 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
         model.language_model, llava_model_path
     )
 
-    tokenizer = AutoTokenizer.from_pretrained(llm_model_name)
+    tokenizer = AutoTokenizer.from_pretrained(llm_model_name, use_fast=False)
     tokenizer.pad_token = tokenizer.eos_token
     image_processor = CLIPImageProcessor.from_pretrained(vision_model_name)
 
