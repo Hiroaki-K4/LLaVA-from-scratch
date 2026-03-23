@@ -45,14 +45,15 @@ def generate_response(
             pad_token_id=tokenizer.eos_token_id,
         )
 
+    # Skip the input portion and decode only the newly generated tokens
+    input_length = combined_embeds.shape[1]
+    response_ids = generate_ids[0][input_length:]
     generated_text = tokenizer.decode(
-        generate_ids[0], skip_special_tokens=True, clean_up_tokenization_spaces=True
+        response_ids, skip_special_tokens=True, clean_up_tokenization_spaces=True
     )
 
-    if "ASSISTANT:" in generated_text:
-        response = generated_text.split("ASSISTANT:")[-1].strip()
-    else:
-        response = generated_text
+    # The generated text should be the response directly
+    response = generated_text.strip()
 
     return response
 
