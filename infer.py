@@ -36,7 +36,7 @@ def generate_response(
         )
 
         generate_ids = model.language_model.generate(
-            input_embeds=combined_embeds.to(torch.float16),
+            inputs_embeds=combined_embeds.to(torch.float16),
             attention_mask=attention_mask,
             max_new_tokens=512,
             do_sample=True,
