@@ -3,7 +3,7 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 model_name = "lmsys/vicuna-7b-v1.5"
 
-tokenizer = AutoTokenizer.from_pretrained(model_name)
+tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
 model = AutoModelForCausalLM.from_pretrained(
     model_name, torch_dtype=torch.float16, device_map="auto"
 )
