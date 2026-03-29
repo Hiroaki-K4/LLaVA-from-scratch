@@ -58,7 +58,8 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
         llm_model_name=llm_model_name,
         vision_model_name=vision_model_name,
         projector_path=projector_path,
-    ).to(device)
+        device=device,
+    )
     model.language_model = PeftModel.from_pretrained(
         model.language_model, llava_model_path
     )

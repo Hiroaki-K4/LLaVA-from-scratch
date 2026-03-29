@@ -55,7 +55,7 @@ def train_llava(
     gradient_accumulation_steps=1,
 ):
     print("Loading models...")
-    model = LlavaModel(llm_id, vision_id, projector_path).to(device)
+    model = LlavaModel(llm_id, vision_id, projector_path, device=device)
     lora_config = LoraConfig(r=8, lora_alpha=32, target_modules=["q_proj", "v_proj"])
     model.language_model = get_peft_model(model.language_model, lora_config)
 

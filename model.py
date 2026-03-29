@@ -4,18 +4,23 @@ from transformers import AutoModelForCausalLM, CLIPVisionModel
 
 
 class LlavaModel(nn.Module):
-    def __init__(self, llm_model_name, vision_model_name, projector_path=None):
+    def __init__(
+        self, llm_model_name, vision_model_name, projector_path=None, device=None
+    ):
         super().__init__()
+        if device is None:
+            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
         # Vision encoder
         self.vision_encoder = CLIPVisionModel.from_pretrained(
             vision_model_name, torch_dtype=torch.float16
-        )
+        ).to(device)
         self.vision_encoder.requires_grad_(False)
 
         # Language model
         self.language_model = AutoModelForCausalLM.from_pretrained(
-            llm_model_name, torch_dtype=torch.float16
-        )
+            llm_model_name, torch_dtype=torch.float16, low_cpu_mem_usage=True
+        ).to(device)
         self.language_model.requires_grad_(False)
 
         # Projection layers
@@ -25,9 +30,11 @@ class LlavaModel(nn.Module):
             nn.Linear(vision_hidden_size, llm_hidden_size),
             nn.GELU(),
             nn.Linear(llm_hidden_size, llm_hidden_size),
-        )
+        ).to(device)
         if projector_path is not None:
-            self.projector.load_state_dict(torch.load(projector_path))
+            self.projector.load_state_dict(
+                torch.load(projector_path, map_location=device)
+            )
 
     def forward(self, input_ids, pixel_values, attention_mask=None, labels=None):
         with torch.no_grad():
@@ -72,7 +79,7 @@ if __name__ == "__main__":
     VISION_ID = "openai/clip-vit-large-patch14-336"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
-    model = LlavaModel(LLM_ID, VISION_ID).to(device)
+    model = LlavaModel(LLM_ID, VISION_ID, device=device)
     dummy_pixels = torch.randn(1, 3, 336, 336)
     dummy_ids = torch.randint(0, 32000, (1, 16))
     dummy_labels = torch.randint(0, 32000, (1, 16))
