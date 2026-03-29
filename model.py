@@ -7,11 +7,15 @@ class LlavaModel(nn.Module):
     def __init__(self, llm_model_name, vision_model_name, projector_path=None):
         super().__init__()
         # Vision encoder
-        self.vision_encoder = CLIPVisionModel.from_pretrained(vision_model_name)
+        self.vision_encoder = CLIPVisionModel.from_pretrained(
+            vision_model_name, torch_dtype=torch.float16
+        )
         self.vision_encoder.requires_grad_(False)
 
         # Language model
-        self.language_model = AutoModelForCausalLM.from_pretrained(llm_model_name)
+        self.language_model = AutoModelForCausalLM.from_pretrained(
+            llm_model_name, torch_dtype=torch.float16
+        )
         self.language_model.requires_grad_(False)
 
         # Projection layers
