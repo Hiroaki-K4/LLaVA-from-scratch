@@ -64,7 +64,7 @@ class LlavaModel(nn.Module):
 
 
 if __name__ == "__main__":
-    LLM_ID = "lmsys/vicuna-7b-v1.5"
+    LLM_ID = "meta-llama/Meta-Llama-3-8B-Instruct"
     VISION_ID = "openai/clip-vit-large-patch14-336"
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")

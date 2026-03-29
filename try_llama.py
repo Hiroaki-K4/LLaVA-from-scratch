@@ -27,7 +27,9 @@ token_ids = tokenizer.encode(prompt, add_special_tokens=False, return_tensors="p
 # print()
 
 # outputs = model.generate(**inputs, max_new_tokens=200, temperature=0.7)
-outputs = model.generate(token_ids.to(model.device), max_new_tokens=200, temperature=0.7)
+outputs = model.generate(
+    token_ids.to(model.device), max_new_tokens=200, temperature=0.7
+)
 
 
 # print("Output tokens:", outputs[0].tolist()[:30])
@@ -45,5 +47,5 @@ outputs = model.generate(token_ids.to(model.device), max_new_tokens=200, tempera
 # print("Generated tokens:", generated_ids.tolist()[:20])
 # generated_text = tokenizer.decode(generated_ids, skip_special_tokens=True)
 # print("Generated only:", generated_text[:200])
-output = tokenizer.decode(outputs.tolist()[0][token_ids.size(1):])
+output = tokenizer.decode(outputs.tolist()[0][token_ids.size(1) :])
 print(output)
