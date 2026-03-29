@@ -12,7 +12,7 @@ if tokenizer.pad_token is None:
     tokenizer.pad_token = tokenizer.eos_token
 
 model = AutoModelForCausalLM.from_pretrained(
-    model_name, torch_dtype=torch.float16, device_map="auto"
+    model_name, dtype=torch.float16, device_map="auto"
 )
 
 prompt = "Explain the concept of diffusion models in simple terms."

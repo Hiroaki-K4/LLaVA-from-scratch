@@ -3,12 +3,12 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Load base model
-llm_model_name = "lmsys/vicuna-7b-v1.5"
+llm_model_name = "meta-llama/Llama-3.2-1B-Instruct"
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 print("Loading base model...")
 base_model = AutoModelForCausalLM.from_pretrained(
-    llm_model_name, torch_dtype=torch.float16
+    llm_model_name, dtype=torch.float16
 ).to(device)
 
 print("Loading PEFT adapter...")

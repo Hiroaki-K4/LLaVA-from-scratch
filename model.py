@@ -13,13 +13,13 @@ class LlavaModel(nn.Module):
 
         # Vision encoder
         self.vision_encoder = CLIPVisionModel.from_pretrained(
-            vision_model_name, torch_dtype=torch.float16
+            vision_model_name, dtype=torch.float16
         ).to(device)
         self.vision_encoder.requires_grad_(False)
 
         # Language model
         self.language_model = AutoModelForCausalLM.from_pretrained(
-            llm_model_name, torch_dtype=torch.float16, low_cpu_mem_usage=True
+            llm_model_name, dtype=torch.float16, low_cpu_mem_usage=True
         ).to(device)
         self.language_model.requires_grad_(False)
 
