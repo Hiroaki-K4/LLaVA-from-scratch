@@ -104,7 +104,7 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
 
 
 if __name__ == "__main__":
-    llm_model_name = "meta-llama/Meta-Llama-3-8B-Instruct"
+    llm_model_name = "meta-llama/Llama-3.2-1B-Instruct"
     vision_model_name = "openai/clip-vit-large-patch14-336"
     projector_path = "best_llava_projector.pth"  # Projector retrained in Stage 2
     llava_model_path = "best_llava"  # Directory containing PEFT adapter

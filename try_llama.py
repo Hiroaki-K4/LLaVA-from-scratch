@@ -3,7 +3,8 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 # Llamaモデルを使用（例: Llama-2またはLlama-3）
 # model_name = "meta-llama/Llama-2-7b-chat-hf"  # Llama 2 Chat
-model_name = "meta-llama/Meta-Llama-3-8B-Instruct"  # Llama 3 Instruct
+# model_name = "meta-llama/Meta-Llama-3-8B-Instruct"  # Llama 3 8B Instruct
+model_name = "meta-llama/Llama-3.2-1B-Instruct"  # Llama 3.2 1B Instruct (lightweight)
 
 tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
 model = AutoModelForCausalLM.from_pretrained(

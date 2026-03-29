@@ -212,7 +212,7 @@ def train_projector(
 
 
 if __name__ == "__main__":
-    llm_id = "meta-llama/Meta-Llama-3-8B-Instruct"
+    llm_id = "meta-llama/Llama-3.2-1B-Instruct"
     vision_id = "openai/clip-vit-large-patch14-336"
     batch_size = 4
     num_epochs = 1
