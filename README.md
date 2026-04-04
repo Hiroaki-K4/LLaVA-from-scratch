@@ -139,6 +139,12 @@ uv run python train_llava.py
 uv run python infer.py
 ```
 
+Below are the inference results from our LLaVA model trained in this repo. As shown, the model can accurately describe the input image.
+
+![Sample Image](caption.jpg)
+
+![LLaVA Inference Results](sample_result.png)
+
 <br></br>
 
 ## 🎓 Training
