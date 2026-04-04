@@ -25,7 +25,7 @@ This repository provides a complete educational and research codebase implementi
 ### Models and Data
 
 - **Vision Encoder**: CLIP ViT-L/14@336px (OpenAI) - Transforms images into high-dimensional feature vectors
-- **Language Model**: Vicuna-7B-v1.5 (LMSYS) - A conversational language model based on LLaMA
+- **Language Model**: Llama-3.2-1B-Instruct (Meta) - A compact instruction-tuned language model
 - **Projection Layer**: 2-layer MLP - Aligns visual feature space with language feature space
 
 ### Training Strategy
@@ -59,7 +59,8 @@ Achieves efficient learning through a two-stage approach:
 │                                              │                 │
 │                                              ▼                 │
 │                                      ┌───────────────┐         │
-│                                      │   Vicuna 7B   │         │
+│                                      │  Llama 3.2    │         │
+│                                      │ 1B-Instruct   │         │
 │                                      │    (LoRA)     │         │
 │                                      └───────┬───────┘         │
 │                                              │                 │
@@ -161,11 +162,12 @@ uv run python train_projector.py
 
 **Key Parameters** (edit in `train_projector.py`):
 ```python
-LLM_ID = "lmsys/vicuna-7b-v1.5"
-VISION_ID = "openai/clip-vit-large-patch14-336"
-BATCH_SIZE = 32
-NUM_EPOCHS = 5
-LEARNING_RATE = 1e-3
+llm_id = "meta-llama/Llama-3.2-1B-Instruct"
+vision_id = "openai/clip-vit-large-patch14-336"
+batch_size = 32
+num_epochs = 1
+lr_rate = 1e-3
+gradient_accumulation_steps = 4
 ```
 
 **Output**: `best_projector.pth` (trained projection layer weights)
@@ -193,24 +195,25 @@ uv run python train_llava.py
 
 **Key Parameters** (edit in `train_llava.py`):
 ```python
-LLM_ID = "lmsys/vicuna-7b-v1.5"
-VISION_ID = "openai/clip-vit-large-patch14-336"
-PROJECTOR_PATH = "best_projector.pth"
-BATCH_SIZE = 2
-NUM_EPOCHS = 3
-LEARNING_RATE = 2e-5
-GRADIENT_ACCUMULATION_STEPS = 4  # Effective batch size = 8
+llm_id = "meta-llama/Llama-3.2-1B-Instruct"
+vision_id = "openai/clip-vit-large-patch14-336"
+projector_path = "best_projector.pth"
+batch_size = 2
+num_epochs = 1
+lr_rate = 1e-5
+gradient_accumulation_steps = 2  # Effective batch size = 4
 ```
 
-**Output**: `best_llava.pth` (trained LoRA weights)
+**Output**: `best_llava/` (directory containing PEFT adapter weights)
 
 **Training Details**:
 - Vision encoder and base LM remain frozen
 - LoRA adapters (rank=8) applied to q_proj and v_proj
 - Gradient checkpointing enabled for memory efficiency
-- Gradient accumulation with effective batch size of 8
+- Gradient accumulation with effective batch size of 4
 - FP16 mixed precision training
 - Validation every 1000 steps with early stopping (patience=3)
+- Projector reloaded and fine-tuned alongside LoRA adapters
 
 ## 🔮 Inference
 
@@ -221,32 +224,33 @@ Use the trained model to generate responses for images.
 uv run python infer.py
 ```
 
-**Example Code**:
-```python
-from infer import generate_response
+**Interactive Usage**:
+The inference script provides an interactive chat interface:
 
-# Load model
-llm_id = "lmsys/vicuna-7b-v1.5"
-vision_id = "openai/clip-vit-large-patch14-336"
-projector_path = "best_projector.pth"
-lora_path = "best_llava.pth"
-
-# Generate response
-response = generate_response(
-    model=model,
-    tokenizer=tokenizer,
-    image_processor=image_processor,
-    image_path="path/to/your/image.jpg",
-    prompt_text="What is happening in this image?",
-    device="cuda"
-)
-print(response)
+```bash
+uv run python infer.py
 ```
 
-**Generation Parameters**:
+```
+### Assistant: Please ask your question. If you want to upload a new image, type /image <image path>. If you want to finish this conversation, type /exit.
+### Human: /image your_image.jpg
+### Human: What is happening in this image?
+### Assistant: [Model's response here]
+### Human: /exit
+```
+
+**Technical Details**:
+```python
+llm_model_name = "meta-llama/Llama-3.2-1B-Instruct"
+vision_model_name = "openai/clip-vit-large-patch14-336"
+projector_path = "best_projector.pth"
+llava_model_path = "best_llava"  # Directory containing PEFT adapter
+```
+
+**Generation Parameters** (in `generate_response` function):
 - `max_new_tokens=512`: Maximum response length
-- `temperature=0.7`: Sampling temperature (higher = more creative)
-- `top_p=0.9`: Nucleus sampling threshold
+- Uses greedy decoding by default for consistent outputs
+- Combined embeddings (image + text) passed to language model
 
 ## 📊 Dataset Information
 
@@ -306,14 +310,46 @@ with torch.amp.autocast("cuda", dtype=torch.float16):
 - Base language model remains frozen
 - Only projector and LoRA adapters are trained
 
+### 6. Dtype Consistency
+```python
+# All model components use float16 for consistency
+self.vision_encoder = CLIPVisionModel.from_pretrained(
+    vision_model_name, dtype=torch.float16
+)
+self.language_model = AutoModelForCausalLM.from_pretrained(
+    llm_model_name, dtype=torch.float16, low_cpu_mem_usage=True
+)
+self.projector = self.projector.to(torch.float16)  # Critical for inference
+```
+
 **If you encounter OOM errors**:
-1. Reduce `BATCH_SIZE` (try 1 for Stage 2)
-2. Increase `GRADIENT_ACCUMULATION_STEPS`
+1. Reduce `batch_size` (try 1 for Stage 2)
+2. Increase `gradient_accumulation_steps`
 3. Reduce validation frequency
-4. Use smaller model variants (e.g., Vicuna-3B)
+4. The current setup uses Llama-3.2-1B which is already quite compact
 
-##  References
+**C📚 References
 
+- **LLaVA Paper**: [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485)
+- **Original Implementation**: https://github.com/haotian-liu/LLaVA
+- **Llama 3.2 Model**: https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct
+- **CLIP Vision**: https://huggingface.co/openai/clip-vit-large-patch14-336
+- **LoRA Paper**: [Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)
+- **PEFT Library**: https://github.com/huggingface/peft
+
+## 🔧 Technical Notes
+
+### Model Architecture Changes
+This implementation uses **Llama-3.2-1B-Instruct** instead of the original Vicuna-7B for:
+- **Faster training**: Smaller model size (1B vs 7B parameters)
+- **Lower memory requirements**: Runs on GPUs with less VRAM
+- **Modern architecture**: Latest LLaMA series with improved instruction-following
+
+### Key Implementation Details
+1. **Projector dtype conversion**: The projector is explicitly converted to float16 after loading to match the vision encoder's output dtype
+2. **PEFT adapter storage**: Stage 2 outputs a directory (`best_llava/`) containing LoRA adapter weights, not a single `.pth` file
+3. **Streaming datasets**: Both CC3M and LLaVA-Instruct use streaming to avoid downloading full datasets
+4. **System prompt**: Uses the standard LLaVA system message for instruction formatting
 - **LLaVA Paper**: [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485)
 - **Original Implementation**: https://github.com/haotian-liu/LLaVA
 - **Vicuna Model**: https://huggingface.co/lmsys/vicuna-7b-v1.5
