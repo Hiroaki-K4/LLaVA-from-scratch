@@ -55,5 +55,5 @@ outputs = model.generate(
 # print("Generated tokens:", generated_ids.tolist()[:20])
 # generated_text = tokenizer.decode(generated_ids, skip_special_tokens=True)
 # print("Generated only:", generated_text[:200])
-output = tokenizer.decode(outputs[0][token_ids.size(1):], skip_special_tokens=True)
+output = tokenizer.decode(outputs[0][token_ids.size(1) :], skip_special_tokens=True)
 print(output)

@@ -106,7 +106,7 @@ def infer(llm_model_name, vision_model_name, projector_path, llava_model_path, d
 if __name__ == "__main__":
     llm_model_name = "meta-llama/Llama-3.2-1B-Instruct"
     vision_model_name = "openai/clip-vit-large-patch14-336"
-    projector_path = "best_llava_projector.pth"  # Projector retrained in Stage 2
+    projector_path = "best_projector.pth"  # Projector retrained in Stage 2
     llava_model_path = "best_llava"  # Directory containing PEFT adapter
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     infer(llm_model_name, vision_model_name, projector_path, llava_model_path, device)
