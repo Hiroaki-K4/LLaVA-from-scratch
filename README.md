@@ -2,6 +2,8 @@
 
 A complete implementation of LLaVA (Large Language and Vision Assistant) from scratch, featuring a two-stage training pipeline and inference capabilities.
 
+<br></br>
+
 ## 🔍 Overview
 
 ### Background of LLaVA Research
@@ -34,6 +36,8 @@ Achieves efficient learning through a two-stage approach:
 
 1. **Stage 1 (Projector Pre-training)**: Pre-trains the projection layer on the CC3M dataset (3 million image-caption pairs) to connect vision and language modalities
 2. **Stage 2 (Instruction Tuning)**: Trains on the LLaVA-Instruct-150K dataset for complex question answering and reasoning tasks about images
+
+<br></br>
 
 ## 🏗️ Architecture
 
@@ -72,6 +76,8 @@ Achieves efficient learning through a two-stage approach:
 └────────────────────────────────────────────────────────────────┘
 ```
 
+<br></br>
+
 ## ✨ Features
 
 - **Complete Training Pipeline**: Two-stage training from scratch
@@ -81,21 +87,7 @@ Achieves efficient learning through a two-stage approach:
 - **Validation & Early Stopping**: Built-in validation with early stopping
 - **Mixed Precision Training**: FP16 automatic mixed precision support
 
-## 📦 Requirements
-
-- Python >= 3.13
-- CUDA-capable GPU (recommended: 24GB+ VRAM for Stage 2 training)
-- Hugging Face account (for downloading models and datasets)
-
-### Key Dependencies
-
-- PyTorch >= 2.10.0
-- Transformers >= 5.2.0
-- PEFT >= 0.18.1 (for LoRA)
-- WebDataset >= 1.0.2
-- CLIP (via transformers)
-
-See `pyproject.toml` for complete list.
+<br></br>
 
 ## 🚀 Installation
 
@@ -130,6 +122,8 @@ export HF_TOKEN="your_token_here"
 
 Get your token from https://huggingface.co/settings/tokens
 
+<br></br>
+
 ## 🎯 Quick Start
 
 ### Complete Training Workflow
@@ -144,6 +138,8 @@ uv run python train_llava.py
 # Run inference
 uv run python infer.py
 ```
+
+<br></br>
 
 ## 🎓 Training
 
@@ -215,6 +211,8 @@ gradient_accumulation_steps = 2  # Effective batch size = 4
 - Validation every 1000 steps with early stopping (patience=3)
 - Projector reloaded and fine-tuned alongside LoRA adapters
 
+<br></br>
+
 ## 🔮 Inference
 
 Use the trained model to generate responses for images.
@@ -252,6 +250,8 @@ llava_model_path = "best_llava"  # Directory containing PEFT adapter
 - Uses greedy decoding by default for consistent outputs
 - Combined embeddings (image + text) passed to language model
 
+<br></br>
+
 ## 📊 Dataset Information
 
 ### CC3M (Conceptual Captions 3M)
@@ -270,6 +270,8 @@ llava_model_path = "best_llava"  # Directory containing PEFT adapter
 - **Source**: https://huggingface.co/datasets/liuhaotian/LLaVA-Instruct-150K
 - **Images**: From COCO dataset (auto-downloaded)
 - **Loading**: Streaming for training, cached for validation
+
+<br></br>
 
 ## 🧠 Memory Optimization
 
@@ -328,30 +330,20 @@ self.projector = self.projector.to(torch.float16)  # Critical for inference
 3. Reduce validation frequency
 4. The current setup uses Llama-3.2-1B which is already quite compact
 
-**C📚 References
+<br></br>
 
+## 🔧 Key Implementation Details
+1. **Projector dtype conversion**: The projector is explicitly converted to float16 after loading to match the vision encoder's output dtype
+2. **PEFT adapter storage**: Stage 2 outputs a directory (`best_llava/`) containing LoRA adapter weights, not a single `.pth` file
+3. **Streaming datasets**: Both CC3M and LLaVA-Instruct use streaming to avoid downloading full datasets
+4. **System prompt**: Uses the standard LLaVA system message for instruction formatting
+
+<br></br>
+
+## 📚 References
 - **LLaVA Paper**: [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485)
 - **Original Implementation**: https://github.com/haotian-liu/LLaVA
 - **Llama 3.2 Model**: https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct
 - **CLIP Vision**: https://huggingface.co/openai/clip-vit-large-patch14-336
 - **LoRA Paper**: [Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)
 - **PEFT Library**: https://github.com/huggingface/peft
-
-## 🔧 Technical Notes
-
-### Model Architecture Changes
-This implementation uses **Llama-3.2-1B-Instruct** instead of the original Vicuna-7B for:
-- **Faster training**: Smaller model size (1B vs 7B parameters)
-- **Lower memory requirements**: Runs on GPUs with less VRAM
-- **Modern architecture**: Latest LLaMA series with improved instruction-following
-
-### Key Implementation Details
-1. **Projector dtype conversion**: The projector is explicitly converted to float16 after loading to match the vision encoder's output dtype
-2. **PEFT adapter storage**: Stage 2 outputs a directory (`best_llava/`) containing LoRA adapter weights, not a single `.pth` file
-3. **Streaming datasets**: Both CC3M and LLaVA-Instruct use streaming to avoid downloading full datasets
-4. **System prompt**: Uses the standard LLaVA system message for instruction formatting
-- **LLaVA Paper**: [Visual Instruction Tuning](https://arxiv.org/abs/2304.08485)
-- **Original Implementation**: https://github.com/haotian-liu/LLaVA
-- **Vicuna Model**: https://huggingface.co/lmsys/vicuna-7b-v1.5
-- **CLIP Vision**: https://huggingface.co/openai/clip-vit-large-patch14-336
-- **LoRA Paper**: [Low-Rank Adaptation of Large Language Models](https://arxiv.org/abs/2106.09685)
