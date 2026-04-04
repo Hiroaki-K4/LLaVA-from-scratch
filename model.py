@@ -35,6 +35,8 @@ class LlavaModel(nn.Module):
             self.projector.load_state_dict(
                 torch.load(projector_path, map_location=device)
             )
+        # Convert projector to float16 to match vision encoder output
+        self.projector = self.projector.to(torch.float16)
 
     def forward(self, input_ids, pixel_values, attention_mask=None, labels=None):
         with torch.no_grad():
