@@ -100,7 +100,7 @@ Achieves efficient learning through a two-stage approach:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/yourusername/LLaVA-from-scratch.git
+git clone https://github.com/Hiroaki-K4/LLaVA-from-scratch.git
 cd LLaVA-from-scratch
 ```
 
@@ -117,16 +117,6 @@ Or using pip:
 ```bash
 pip install -r requirements.txt
 ```
-
-### 3. Set Hugging Face Token
-
-To avoid rate limits and access gated models, set your Hugging Face token:
-
-```bash
-export HF_TOKEN="your_token_here"
-```
-
-Get your token from https://huggingface.co/settings/tokens
 
 <br></br>
 
