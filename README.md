@@ -76,6 +76,12 @@ Achieves efficient learning through a two-stage approach:
 └────────────────────────────────────────────────────────────────┘
 ```
 
+### Key Components
+
+1. **Vision Encoder (CLIP ViT-L)**: Converts images into 1024-dim feature vectors (frozen)
+2. **Projector (2-layer MLP)**: Aligns vision features with language model space (1024→2048 dims)
+3. **Language Model (Llama-3.2-1B)**: Generates text from combined image+text embeddings (LoRA fine-tuned)
+
 <br></br>
 
 ## ✨ Features
